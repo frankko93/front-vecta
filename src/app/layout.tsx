@@ -7,12 +7,18 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
 import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
+import { QueryProvider } from "@/providers/query-provider";
 import { ThemeBootScript } from "@/scripts/theme-boot";
+import { AuthProvider } from "@/stores/auth/auth-provider";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: APP_CONFIG.meta.title,
@@ -38,15 +44,19 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <ThemeBootScript />
       </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
-        <PreferencesStoreProvider
-          themeMode={theme_mode}
-          themePreset={theme_preset}
-          contentLayout={content_layout}
-          navbarStyle={navbar_style}
-        >
-          {children}
-          <Toaster />
-        </PreferencesStoreProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <PreferencesStoreProvider
+              themeMode={theme_mode}
+              themePreset={theme_preset}
+              contentLayout={content_layout}
+              navbarStyle={navbar_style}
+            >
+              {children}
+              <Toaster />
+            </PreferencesStoreProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

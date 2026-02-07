@@ -7,11 +7,13 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+import { usePreferencesStore } from "@/stores/preferences/preferences-provider"
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const themeMode = usePreferencesStore((state) => state.themeMode)
+  const theme = themeMode === "dark" ? "dark" : "light"
 
   return (
     <Sonner

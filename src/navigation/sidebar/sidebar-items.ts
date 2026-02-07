@@ -1,162 +1,95 @@
-import {
-  Banknote,
-  Calendar,
-  ChartBar,
-  Fingerprint,
-  Forklift,
-  Gauge,
-  GraduationCap,
-  Kanban,
-  LayoutDashboard,
-  Lock,
-  type LucideIcon,
-  Mail,
-  MessageSquare,
-  ReceiptText,
-  ShoppingBag,
-  SquareArrowUpRight,
-  Users,
-} from "lucide-react";
+import { BarChart3, Building2, GitCompare, Home, type LucideIcon, Upload, Users } from "lucide-react";
 
-export interface NavSubItem {
+/**
+ * Permission requirements for navigation items
+ * - "authenticated": Any logged-in user
+ * - "can_view": User can view in at least one company (viewer+)
+ * - "can_edit": User can edit in at least one company (editor+)
+ * - "can_manage_users": User can manage users (company admin or super_admin)
+ * - "super_admin": Only super_admin users
+ */
+export type NavPermission = "authenticated" | "can_view" | "can_edit" | "can_manage_users" | "super_admin";
+
+export interface NavItem {
   title: string;
   url: string;
-  icon?: LucideIcon;
-  comingSoon?: boolean;
-  newTab?: boolean;
-  isNew?: boolean;
-}
-
-export interface NavMainItem {
-  title: string;
-  url: string;
-  icon?: LucideIcon;
-  subItems?: NavSubItem[];
-  comingSoon?: boolean;
-  newTab?: boolean;
-  isNew?: boolean;
+  icon: LucideIcon;
+  isActive?: boolean;
+  items?: NavItem[];
+  /** Required permission to see this item */
+  permission?: NavPermission;
 }
 
 export interface NavGroup {
-  id: number;
-  label?: string;
-  items: NavMainItem[];
+  id: string;
+  label: string;
+  items: NavItem[];
+  /** Required permission to see this group (if not set, shows if any item is visible) */
+  permission?: NavPermission;
 }
 
-export const sidebarItems: NavGroup[] = [
+/**
+ * Sidebar navigation organized by groups
+ */
+export const sidebarGroups: NavGroup[] = [
   {
-    id: 1,
-    label: "Dashboards",
+    id: "main",
+    label: "Principal",
     items: [
       {
-        title: "Default",
-        url: "/dashboard/default",
-        icon: LayoutDashboard,
+        title: "Dashboard",
+        url: "/dashboard",
+        icon: Home,
+        permission: "authenticated",
       },
       {
-        title: "CRM",
-        url: "/dashboard/crm",
-        icon: ChartBar,
+        title: "Reportes",
+        url: "/dashboard/reports",
+        icon: BarChart3,
+        permission: "can_view",
       },
       {
-        title: "Finance",
-        url: "/dashboard/finance",
-        icon: Banknote,
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/coming-soon",
-        icon: Gauge,
-        comingSoon: true,
-      },
-      {
-        title: "E-commerce",
-        url: "/dashboard/coming-soon",
-        icon: ShoppingBag,
-        comingSoon: true,
-      },
-      {
-        title: "Academy",
-        url: "/dashboard/coming-soon",
-        icon: GraduationCap,
-        comingSoon: true,
-      },
-      {
-        title: "Logistics",
-        url: "/dashboard/coming-soon",
-        icon: Forklift,
-        comingSoon: true,
+        title: "Comparar Escenarios",
+        url: "/dashboard/scenarios",
+        icon: GitCompare,
+        permission: "can_view",
       },
     ],
   },
   {
-    id: 2,
-    label: "Pages",
+    id: "data",
+    label: "Gestión de Datos",
     items: [
       {
-        title: "Email",
-        url: "/dashboard/coming-soon",
-        icon: Mail,
-        comingSoon: true,
+        title: "Importar Datos",
+        url: "/dashboard/import",
+        icon: Upload,
+        permission: "can_edit",
       },
+    ],
+  },
+  {
+    id: "config",
+    label: "Configuración",
+    permission: "super_admin",
+    items: [
       {
-        title: "Chat",
-        url: "/dashboard/coming-soon",
-        icon: MessageSquare,
-        comingSoon: true,
+        title: "Empresas",
+        url: "/dashboard/companies",
+        icon: Building2,
+        permission: "super_admin",
       },
+    ],
+  },
+  {
+    id: "admin",
+    label: "Administración",
+    items: [
       {
-        title: "Calendar",
-        url: "/dashboard/coming-soon",
-        icon: Calendar,
-        comingSoon: true,
-      },
-      {
-        title: "Kanban",
-        url: "/dashboard/coming-soon",
-        icon: Kanban,
-        comingSoon: true,
-      },
-      {
-        title: "Invoice",
-        url: "/dashboard/coming-soon",
-        icon: ReceiptText,
-        comingSoon: true,
-      },
-      {
-        title: "Users",
-        url: "/dashboard/coming-soon",
+        title: "Usuarios",
+        url: "/dashboard/users",
         icon: Users,
-        comingSoon: true,
-      },
-      {
-        title: "Roles",
-        url: "/dashboard/coming-soon",
-        icon: Lock,
-        comingSoon: true,
-      },
-      {
-        title: "Authentication",
-        url: "/auth",
-        icon: Fingerprint,
-        subItems: [
-          { title: "Login v1", url: "/auth/v1/login", newTab: true },
-          { title: "Login v2", url: "/auth/v2/login", newTab: true },
-          { title: "Register v1", url: "/auth/v1/register", newTab: true },
-          { title: "Register v2", url: "/auth/v2/register", newTab: true },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: "Misc",
-    items: [
-      {
-        title: "Others",
-        url: "/dashboard/coming-soon",
-        icon: SquareArrowUpRight,
-        comingSoon: true,
+        permission: "can_manage_users",
       },
     ],
   },
