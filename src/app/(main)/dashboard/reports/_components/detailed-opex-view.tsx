@@ -82,7 +82,7 @@ interface CategoryConfig {
   metrics: {
     key: string;
     label: string;
-    source: "direct" | "subcategory"; // direct = from OPEXActual, subcategory = from by_subcategory
+    source: "direct" | "subcategory" | "expense_type"; // direct = from OPEXActual, subcategory = from by_subcategory, expense_type = from by_expense_type
     isCurrency?: boolean;
     isSubtotal?: boolean;
   }[];
@@ -525,8 +525,8 @@ function OPEXTable({
       let hasAny = false;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           hasAny = true;
         }
       }
@@ -586,7 +586,9 @@ function OPEXTable({
           return sumOPEXMetric(targetMonths, metric.key, dataType);
         }
         const monthData = targetMonths[0];
-        return monthData?.[dataType]?.has_data ? (monthData[dataType] as Record<string, unknown>)[metric.key] : null;
+        return monthData?.[dataType]?.has_data
+          ? (monthData[dataType] as unknown as Record<string, number>)[metric.key]
+          : null;
       }
 
       if (metric.source === "expense_type") {

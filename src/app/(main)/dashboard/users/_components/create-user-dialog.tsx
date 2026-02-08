@@ -22,7 +22,7 @@ import type { CreateCompanyUserRequest, CreateUserRequest, SystemPermission } fr
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: CreateUserRequest | CreateCompanyUserRequest) => Promise<void>;
+  onSubmit: (data: CreateUserRequest | CreateCompanyUserRequest) => Promise<unknown>;
   isLoading: boolean;
   mode: "super_admin" | "company_admin";
   companyName?: string;

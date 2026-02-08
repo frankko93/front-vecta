@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useCompanyAdminUsers, useSuperAdminUsers } from "@/hooks/use-users";
-import type { CompanyRole, User, UserCompany } from "@/lib/api/types";
+import type { CompanyRole, UpdateUserRequest, User, UserCompany } from "@/lib/api/types";
 
 import { AssignCompanyDialog } from "./_components/assign-company-dialog";
 import { ChangeRoleDialog } from "./_components/change-role-dialog";
@@ -397,7 +397,11 @@ export default function UsersPage() {
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           user={selectedUser}
-          onSubmit={isSuperAdmin ? superAdminHook.updateUser : companyAdminHook.updateUser}
+          onSubmit={
+            isSuperAdmin
+              ? (data) => superAdminHook.updateUser(data as { id: number; data: UpdateUserRequest })
+              : (data) => companyAdminHook.updateUser(data as { userId: number; data: UpdateUserRequest })
+          }
           isLoading={isSuperAdmin ? superAdminHook.isUpdating : companyAdminHook.isUpdating}
         />
 

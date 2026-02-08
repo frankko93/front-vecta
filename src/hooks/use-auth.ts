@@ -34,7 +34,7 @@ export function useAuth() {
   const hasSystemPermission = useCallback(
     (permission: SystemPermission): boolean => {
       if (!user) return false;
-      return user.permissions.includes(permission);
+      return (user.permissions as string[]).includes(permission);
     },
     [user],
   );

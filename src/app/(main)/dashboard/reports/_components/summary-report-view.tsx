@@ -115,8 +115,8 @@ function calcVar(a: number, b: number, aHas: boolean, bHas: boolean): number | n
 function _getVariance(month: MonthlyReport, section: keyof MonthlyVariance, metric: string): number | null {
   if (!month.actual || !month.budget) return null;
 
-  const actualHas = (month.actual[section] as Record<string, unknown>)?.has_data;
-  const budgetHas = (month.budget[section] as Record<string, unknown>)?.has_data;
+  const actualHas = Boolean((month.actual[section] as unknown as Record<string, unknown>)?.has_data);
+  const budgetHas = Boolean((month.budget[section] as unknown as Record<string, unknown>)?.has_data);
 
   if (!actualHas && !budgetHas) return null;
 
@@ -129,8 +129,8 @@ function _getVariance(month: MonthlyReport, section: keyof MonthlyVariance, metr
 
   if (!actualHas || !budgetHas) return null;
 
-  const actual = (month.actual[section] as Record<string, unknown>)?.[metric];
-  const budget = (month.budget[section] as Record<string, unknown>)?.[metric];
+  const actual = (month.actual[section] as unknown as Record<string, number>)?.[metric];
+  const budget = (month.budget[section] as unknown as Record<string, number>)?.[metric];
 
   if (typeof actual !== "number" || typeof budget !== "number") return null;
 
@@ -224,7 +224,9 @@ export function SummaryReportView({ report, isLoading, error, params }: SummaryR
   }
 
   if (error) {
-    const apiError = error as { response?: { data?: { error?: string; details?: unknown } } };
+    const apiError = error as {
+      response?: { data?: { error?: string; details?: { type: string; message: string }[] } };
+    };
     const hasValidationDetails =
       apiError?.response?.data?.error === "validation failed" && apiError?.response?.data?.details;
 
@@ -235,7 +237,7 @@ export function SummaryReportView({ report, isLoading, error, params }: SummaryR
             <p className="font-medium">{error.message}</p>
             {hasValidationDetails && (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                {apiError.response.data.details.map((detail: { type: string; message: string }) => (
+                {apiError.response?.data?.details?.map((detail) => (
                   <li key={`${detail.type}-${detail.message}`}>
                     <span className="font-medium">{detail.type}:</span> {detail.message}
                   </li>
@@ -319,8 +321,8 @@ export function SummaryReportView({ report, isLoading, error, params }: SummaryR
                 const ytd = lastMonthWithYTD.ytd;
 
                 const getYTDVariance = (section: keyof MonthlyVariance, metric: string): number | null => {
-                  const actualHas = (ytd.actual[section] as Record<string, unknown>)?.has_data;
-                  const budgetHas = (ytd.budget[section] as Record<string, unknown>)?.has_data;
+                  const actualHas = Boolean((ytd.actual[section] as unknown as Record<string, unknown>)?.has_data);
+                  const budgetHas = Boolean((ytd.budget[section] as unknown as Record<string, unknown>)?.has_data);
 
                   if (!actualHas && !budgetHas) return null;
 
@@ -333,8 +335,8 @@ export function SummaryReportView({ report, isLoading, error, params }: SummaryR
 
                   if (!actualHas || !budgetHas) return null;
 
-                  const actual = (ytd.actual[section] as Record<string, unknown>)?.[metric];
-                  const budget = (ytd.budget[section] as Record<string, unknown>)?.[metric];
+                  const actual = (ytd.actual[section] as unknown as Record<string, number>)?.[metric];
+                  const budget = (ytd.budget[section] as unknown as Record<string, number>)?.[metric];
 
                   if (typeof actual !== "number" || typeof budget !== "number") return null;
 
@@ -734,7 +736,11 @@ function _DataRow({
 }
 
 function _DetailedTables({ months }: { months: MonthlyReport[] }) {
-  const sections = [
+  const sections: {
+    title: string;
+    key: string;
+    rows: { label: string; k: string; curr?: boolean; bold?: boolean }[];
+  }[] = [
     {
       title: "1. Minería",
       key: "mining",
@@ -816,8 +822,8 @@ function _DetailedTables({ months }: { months: MonthlyReport[] }) {
   return (
     <div className="space-y-3">
       {sections.map((section) => {
-        const hasData = months.some(
-          (m) => (m.actual?.[section.key as keyof typeof m.actual] as Record<string, unknown>)?.has_data,
+        const hasData = months.some((m) =>
+          Boolean((m.actual?.[section.key as keyof typeof m.actual] as unknown as Record<string, unknown>)?.has_data),
         );
         if (!hasData) return null;
 
@@ -860,16 +866,16 @@ function _DetailedTables({ months }: { months: MonthlyReport[] }) {
                           <span className="block sm:inline">{row.label}</span>
                         </td>
                         {months.map((m) => {
-                          const a = m.actual?.[section.key as keyof typeof m.actual] as
-                            | Record<string, unknown>
+                          const a = m.actual?.[section.key as keyof typeof m.actual] as unknown as
+                            | Record<string, number>
                             | undefined;
-                          const b = m.budget?.[section.key as keyof typeof m.budget] as
-                            | Record<string, unknown>
+                          const b = m.budget?.[section.key as keyof typeof m.budget] as unknown as
+                            | Record<string, number>
                             | undefined;
-                          const aVal = a?.[row.k];
-                          const bVal = b?.[row.k];
-                          const aHas = a?.has_data ?? false;
-                          const bHas = b?.has_data ?? false;
+                          const aVal = a?.[row.k] ?? 0;
+                          const bVal = b?.[row.k] ?? 0;
+                          const aHas = Boolean(a?.has_data);
+                          const bHas = Boolean(b?.has_data);
                           const v = calcVar(aVal, bVal, aHas, bHas);
 
                           return (
@@ -986,7 +992,6 @@ function _ChartsView({ months }: { months: MonthlyReport[] }) {
             outerRadius={65}
             dataKey="value"
             label={(e) => `${e.name}: ${((e.value / costsData.reduce((a, b) => a + b.value, 0)) * 100).toFixed(0)}%`}
-            labelStyle={{ fontSize: 10 }}
           >
             {costsData.map((e) => (
               <Cell key={e.name ?? e.color} fill={e.color} />
@@ -1221,7 +1226,7 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
       let hasAnyData = false;
 
       for (const month of monthsList) {
-        const data = month[dataType]?.[section as keyof typeof month.actual] as Record<string, unknown>;
+        const data = month[dataType]?.[section as keyof typeof month.actual] as unknown as Record<string, number>;
         if (data?.has_data && typeof data[metricKey] === "number") {
           sum += data[metricKey];
           hasAnyData = true;
@@ -1240,7 +1245,7 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
       let count = 0;
 
       for (const month of monthsList) {
-        const data = month[dataType]?.[section as keyof typeof month.actual] as Record<string, unknown>;
+        const data = month[dataType]?.[section as keyof typeof month.actual] as unknown as Record<string, number>;
         if (data?.has_data && typeof data[metricKey] === "number") {
           sum += data[metricKey];
           count++;
@@ -1315,16 +1320,16 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
           // Single month mode
           const monthData = targetMonths[0];
           const sectionData = monthData?.actual?.[metric.section as keyof typeof monthData.actual] as
-            | Record<string, unknown>
+            | Record<string, number>
             | undefined;
           const budgetData = monthData?.budget?.[metric.section as keyof typeof monthData.budget] as
-            | Record<string, unknown>
+            | Record<string, number>
             | undefined;
           const ytdActualData = monthData?.ytd?.actual?.[metric.section as keyof typeof monthData.ytd.actual] as
-            | Record<string, unknown>
+            | Record<string, number>
             | undefined;
           const ytdBudgetData = monthData?.ytd?.budget?.[metric.section as keyof typeof monthData.ytd.budget] as
-            | Record<string, unknown>
+            | Record<string, number>
             | undefined;
 
           actualValue = sectionData?.has_data ? sectionData[metric.key] : null;

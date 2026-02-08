@@ -33,8 +33,15 @@ interface AuthGuardProps {
  */
 export function AuthGuard({ children, requiredRole, requiredPermission, fallback }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, selectedCompanyId, hasRole, userCompanies, isSuperAdmin, canManageCompanyUsers } =
-    useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    selectedCompanyId,
+    hasRole,
+    userCompanies,
+    isSuperAdmin,
+    canManageSelectedCompanyUsers,
+  } = useAuth();
 
   // Check if user has at least one company where they can view/edit
   const hasAnyViewAccess = userCompanies.length > 0;
@@ -73,7 +80,7 @@ export function AuthGuard({ children, requiredRole, requiredPermission, fallback
         hasPermission = hasAnyEditAccess;
         break;
       case "can_manage_users":
-        hasPermission = canManageCompanyUsers || isSuperAdmin;
+        hasPermission = canManageSelectedCompanyUsers;
         break;
       case "super_admin":
         hasPermission = isSuperAdmin;
@@ -182,7 +189,8 @@ interface CanEditGuardProps {
  */
 export function CanEditGuard({ children, companyId, fallback = null }: CanEditGuardProps) {
   return (
-    <RoleGuard companyId={companyId} fallback={fallback}>
+    // biome-ignore lint/a11y/useValidAriaRole: role is a custom component prop, not an ARIA role
+    <RoleGuard companyId={companyId} role="editor" fallback={fallback}>
       {children}
     </RoleGuard>
   );
@@ -201,7 +209,8 @@ interface CanDeleteGuardProps {
  */
 export function CanDeleteGuard({ children, companyId, fallback = null }: CanDeleteGuardProps) {
   return (
-    <RoleGuard companyId={companyId} fallback={fallback}>
+    // biome-ignore lint/a11y/useValidAriaRole: role is a custom component prop, not an ARIA role
+    <RoleGuard companyId={companyId} role="admin" fallback={fallback}>
       {children}
     </RoleGuard>
   );

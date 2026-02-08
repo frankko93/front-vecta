@@ -18,7 +18,7 @@ interface DeactivateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User | null;
-  onConfirm: (id: number) => Promise<void>;
+  onConfirm: (id: number) => Promise<unknown>;
   isLoading: boolean;
 }
 

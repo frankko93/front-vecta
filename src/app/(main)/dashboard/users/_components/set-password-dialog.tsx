@@ -23,7 +23,7 @@ interface SetPasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User | null;
-  onSubmit: (data: { userId: number; newPassword: string }) => Promise<void>;
+  onSubmit: (data: { userId: number; newPassword: string }) => Promise<unknown>;
   isLoading: boolean;
 }
 

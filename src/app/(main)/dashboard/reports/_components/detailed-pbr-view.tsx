@@ -696,8 +696,8 @@ function PBRTable({
       let hasAny = false;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           hasAny = true;
         }
       }
@@ -712,8 +712,8 @@ function PBRTable({
       let count = 0;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           count++;
         }
       }
@@ -727,7 +727,9 @@ function PBRTable({
       let sum = 0;
       let hasAny = false;
       for (const m of monthsList) {
-        const sectionData = m[dataType]?.[section as keyof typeof m.actual] as Record<string, unknown> | undefined;
+        const sectionData = m[dataType]?.[section as keyof typeof m.actual] as unknown as
+          | Record<string, number>
+          | undefined;
         if (sectionData?.has_data && typeof sectionData[metricKey] === "number") {
           sum += sectionData[metricKey];
           hasAny = true;
@@ -743,7 +745,9 @@ function PBRTable({
       let sum = 0;
       let count = 0;
       for (const m of monthsList) {
-        const sectionData = m[dataType]?.[section as keyof typeof m.actual] as Record<string, unknown> | undefined;
+        const sectionData = m[dataType]?.[section as keyof typeof m.actual] as unknown as
+          | Record<string, number>
+          | undefined;
         if (sectionData?.has_data && typeof sectionData[metricKey] === "number") {
           sum += sectionData[metricKey];
           count++;
@@ -771,7 +775,9 @@ function PBRTable({
             : sumPBRMetric(targetPBRMonths, metric.key, dataType);
         }
         const monthData = targetPBRMonths[0];
-        return monthData?.[dataType]?.has_data ? (monthData[dataType] as Record<string, unknown>)[metric.key] : null;
+        return monthData?.[dataType]?.has_data
+          ? (monthData[dataType] as unknown as Record<string, number>)[metric.key]
+          : null;
       }
 
       if (targetSummaryMonths.length === 0) return null;
@@ -784,7 +790,7 @@ function PBRTable({
 
       const monthData = targetSummaryMonths[0];
       const sectionData = monthData?.[dataType]?.[metric.section as keyof typeof monthData.actual] as
-        | Record<string, unknown>
+        | Record<string, number>
         | undefined;
       return sectionData?.has_data ? sectionData[metric.key] : null;
     },

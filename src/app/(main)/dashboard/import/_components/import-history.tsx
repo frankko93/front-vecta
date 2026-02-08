@@ -32,7 +32,7 @@ export function ImportHistory() {
       setLoading(true);
       try {
         const { dataService } = await import("@/lib/api");
-        const result = await dataService.list(type, {
+        const result = await dataService.list<ImportHistoryItem>(type, {
           company_id: company,
           year,
           data_type: dataType,
@@ -142,46 +142,56 @@ export function ImportHistory() {
               // Get key values based on type
               const getKeyValues = () => {
                 switch (type) {
-                  case "pbr":
+                  case "pbr": {
+                    const pbr = item as PBRData;
                     return [
                       {
                         label: "Mineral",
-                        value: item.ore_mined_t ? `${Number(item.ore_mined_t).toLocaleString()} t` : null,
+                        value: pbr.ore_mined_t ? `${Number(pbr.ore_mined_t).toLocaleString()} t` : null,
                       },
                       {
                         label: "Procesado",
-                        value: item.total_tonnes_processed
-                          ? `${Number(item.total_tonnes_processed).toLocaleString()} t`
+                        value: pbr.total_tonnes_processed
+                          ? `${Number(pbr.total_tonnes_processed).toLocaleString()} t`
                           : null,
                       },
                     ];
-                  case "dore":
+                  }
+                  case "dore": {
+                    const dore = item as DoreData;
                     return [
                       {
                         label: "Doré",
-                        value: item.dore_produced_oz ? `${Number(item.dore_produced_oz).toLocaleString()} oz` : null,
+                        value: dore.dore_produced_oz ? `${Number(dore.dore_produced_oz).toLocaleString()} oz` : null,
                       },
-                      { label: "Ag%", value: item.silver_grade_pct ? `${item.silver_grade_pct}%` : null },
+                      { label: "Ag%", value: dore.silver_grade_pct ? `${dore.silver_grade_pct}%` : null },
                     ];
-                  case "opex":
+                  }
+                  case "opex": {
+                    const opex = item as OPEXData;
                     return [
-                      { label: "Centro", value: item.cost_center },
-                      { label: "Monto", value: item.amount ? `$${Number(item.amount).toLocaleString()}` : null },
+                      { label: "Centro", value: opex.cost_center },
+                      { label: "Monto", value: opex.amount ? `$${Number(opex.amount).toLocaleString()}` : null },
                     ];
-                  case "capex":
+                  }
+                  case "capex": {
+                    const capex = item as CAPEXData;
                     return [
-                      { label: "Proyecto", value: item.project_name },
-                      { label: "Monto", value: item.amount ? `$${Number(item.amount).toLocaleString()}` : null },
+                      { label: "Proyecto", value: capex.project_name },
+                      { label: "Monto", value: capex.amount ? `$${Number(capex.amount).toLocaleString()}` : null },
                     ];
-                  case "financial":
+                  }
+                  case "financial": {
+                    const fin = item as FinancialData;
                     return [
                       {
                         label: "Impuestos",
-                        value: item.sales_taxes_royalties
-                          ? `$${Number(item.sales_taxes_royalties).toLocaleString()}`
+                        value: fin.sales_taxes_royalties
+                          ? `$${Number(fin.sales_taxes_royalties).toLocaleString()}`
                           : null,
                       },
                     ];
+                  }
                   default:
                     return [];
                 }

@@ -24,7 +24,7 @@ interface EditUserDialogProps {
   user: User | null;
   onSubmit: (
     data: { id: number; data: UpdateUserRequest } | { userId: number; data: UpdateUserRequest },
-  ) => Promise<void>;
+  ) => Promise<unknown>;
   isLoading: boolean;
 }
 

@@ -500,8 +500,8 @@ function CAPEXTable({
       let hasAny = false;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           hasAny = true;
         }
       }
@@ -561,7 +561,9 @@ function CAPEXTable({
           return sumCAPEXMetric(targetMonths, metric.key, dataType);
         }
         const monthData = targetMonths[0];
-        return monthData?.[dataType]?.has_data ? (monthData[dataType] as Record<string, unknown>)[metric.key] : null;
+        return monthData?.[dataType]?.has_data
+          ? (monthData[dataType] as unknown as Record<string, number>)[metric.key]
+          : null;
       }
 
       if (metric.source === "category") {

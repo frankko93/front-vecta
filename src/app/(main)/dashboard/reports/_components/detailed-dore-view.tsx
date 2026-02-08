@@ -529,8 +529,8 @@ function DoreTable({
       let hasAny = false;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           hasAny = true;
         }
       }
@@ -545,8 +545,8 @@ function DoreTable({
       let count = 0;
       for (const m of monthsList) {
         const data = m[dataType];
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           count++;
         }
       }
@@ -561,8 +561,8 @@ function DoreTable({
       let hasAny = false;
       for (const m of monthsList) {
         const data = m[dataType]?.nsr;
-        if (data?.has_data && typeof (data as Record<string, unknown>)[metricKey] === "number") {
-          sum += (data as Record<string, unknown>)[metricKey];
+        if (data?.has_data && typeof (data as unknown as Record<string, number>)[metricKey] === "number") {
+          sum += (data as unknown as Record<string, number>)[metricKey];
           hasAny = true;
         }
       }
@@ -589,7 +589,9 @@ function DoreTable({
             : sumDoreMetric(targetDoreMonths, metric.key, dataType);
         }
         const monthData = targetDoreMonths[0];
-        return monthData?.[dataType]?.has_data ? (monthData[dataType] as Record<string, unknown>)[metric.key] : null;
+        return monthData?.[dataType]?.has_data
+          ? (monthData[dataType] as unknown as Record<string, number>)[metric.key]
+          : null;
       }
 
       // Get from NSR section in Summary data
@@ -601,7 +603,7 @@ function DoreTable({
 
       const monthData = targetSummaryMonths[0];
       const nsrData = monthData?.[dataType]?.nsr;
-      return nsrData?.has_data ? (nsrData as Record<string, unknown>)[metric.key] : null;
+      return nsrData?.has_data ? (nsrData as unknown as Record<string, number>)[metric.key] : null;
     },
     [avgDoreMetric, sumDoreMetric, sumNSRMetric],
   );

@@ -25,7 +25,7 @@ interface ChangeRoleDialogProps {
   user: User | null;
   currentRole: CompanyRole | null;
   companyName: string;
-  onSubmit: (data: { userId: number; role: CompanyRole }) => Promise<void>;
+  onSubmit: (data: { userId: number; role: CompanyRole }) => Promise<unknown>;
   isLoading: boolean;
 }
 

@@ -26,9 +26,9 @@ interface AssignCompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user: User | null;
-  onAssign: (data: { user_id: number; company_id: number; role: CompanyRole }) => Promise<void>;
-  onUpdateRole: (data: { userId: number; companyId: number; role: CompanyRole }) => Promise<void>;
-  onRemove: (data: { userId: number; companyId: number }) => Promise<void>;
+  onAssign: (data: { user_id: number; company_id: number; role: CompanyRole }) => Promise<unknown>;
+  onUpdateRole: (data: { userId: number; companyId: number; role: CompanyRole }) => Promise<unknown>;
+  onRemove: (data: { userId: number; companyId: number }) => Promise<unknown>;
   isLoading: boolean;
 }
 

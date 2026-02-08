@@ -296,7 +296,7 @@ export function useUsers() {
     refetch: async () => {
       /* no-op mock */
     },
-    mode: null as const,
+    mode: null as "super_admin" | "company_admin" | null,
     canAssignPermissions: false,
     canAssignToAnyCompany: false,
   };
