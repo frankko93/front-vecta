@@ -21,7 +21,7 @@ import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 export function SimpleSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-  const { user, logout, userCompanies, selectedCompany, isAuthenticated, isSuperAdmin, canManageCompanyUsers } =
+  const { user, logout, userCompanies, selectedCompany, isAuthenticated, isSuperAdmin, canManageSelectedCompanyUsers } =
     useAuth();
   const themeMode = usePreferencesStore((state) => state.themeMode);
   const setThemeMode = usePreferencesStore((state) => state.setThemeMode);
@@ -41,14 +41,14 @@ export function SimpleSidebar() {
         case "can_edit":
           return hasAnyEditAccess;
         case "can_manage_users":
-          return canManageCompanyUsers || isSuperAdmin;
+          return canManageSelectedCompanyUsers;
         case "super_admin":
           return isSuperAdmin;
         default:
           return false;
       }
     },
-    [isAuthenticated, hasAnyViewAccess, hasAnyEditAccess, canManageCompanyUsers, isSuperAdmin],
+    [isAuthenticated, hasAnyViewAccess, hasAnyEditAccess, canManageSelectedCompanyUsers, isSuperAdmin],
   );
 
   // Filter navigation groups based on permissions
