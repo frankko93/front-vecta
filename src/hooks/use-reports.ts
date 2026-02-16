@@ -19,6 +19,7 @@ export function useSummaryReport(params: SummaryReportParams | null) {
     queryKey: ["report", "summary", params],
     queryFn: () => reportsService.getSummary(params as SummaryReportParams),
     enabled: params !== null && params.company_id > 0,
+    retry: false,
   });
 
   return {

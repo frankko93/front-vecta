@@ -1,32 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
-import {
-  ArrowRight,
-  BarChart3,
-  Building2,
-  Calendar,
-  ChevronRight,
-  FileText,
-  GitCompare,
-  TrendingUp,
-  Upload,
-  Users,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, BarChart3, Building2, Calendar, GitCompare, Upload, Users, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
+import { useSummaryReport } from "@/hooks/use-reports";
+import { cn } from "@/lib/utils";
+
+import { DashboardAlerts } from "./_components/dashboard-alerts";
+import { DashboardCharts } from "./_components/dashboard-charts";
+import { DashboardKPIs } from "./_components/dashboard-kpis";
 
 export default function DashboardPage() {
-  const { user, userCompanies, isLoading, isSuperAdmin, canManageCompanyUsers } = useAuth();
+  const {
+    user,
+    userCompanies,
+    selectedCompanyId,
+    selectedCompany,
+    isLoading: authLoading,
+    isSuperAdmin,
+    canManageSelectedCompanyUsers,
+  } = useAuth();
 
-  // Avoid hydration mismatch: render date only on client
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+
+  // Render date only on client to avoid hydration mismatch
   const [dateStr, setDateStr] = useState("");
   useEffect(() => {
     setDateStr(
@@ -39,364 +44,285 @@ export default function DashboardPage() {
     );
   }, []);
 
-  // User only sees their assigned companies
-  const totalCompanies = userCompanies.length;
+  // Fetch report data for the selected company and year
+  const params = useMemo(() => {
+    if (!selectedCompanyId) return null;
+    return { company_id: selectedCompanyId, year, budget_version: 1 };
+  }, [selectedCompanyId, year]);
 
-  // Permission checks
+  const { report, isLoading: reportLoading } = useSummaryReport(params);
+
+  // Check if the report contains any actual data
+  // When the API fails (e.g. no data imported), treat it as "no data" — not an error
+  const hasActualData = report?.coverage?.has_any_actual ?? report?.months.some((m) => m.actual !== null) ?? false;
+
+  // Permission-based visibility
   const hasAnyViewAccess = userCompanies.length > 0;
   const hasAnyEditAccess = userCompanies.some((c) => c.role === "editor" || c.role === "admin");
 
-  const stats = [
-    {
-      title: "Mis Empresas",
-      value: isLoading ? "-" : totalCompanies,
-      icon: Building2,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-950/20",
-      description: "Empresas asignadas",
-      trend: null,
-    },
-    {
-      title: "Tu Rol",
-      value: user?.permissions[0] || "Viewer",
-      icon: Users,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-950/20",
-      description: "Permisos del sistema",
-      capitalize: true,
-    },
-    {
-      title: "Estado del Sistema",
-      value: "Operativo",
-      icon: Zap,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
-      description: "Todos los servicios activos",
-    },
-  ];
+  // Quick actions filtered by permissions
+  const quickActions = useMemo(
+    () =>
+      [
+        {
+          title: "Importar Datos",
+          description: "Cargar PBR, Dore, OPEX, CAPEX",
+          icon: Upload,
+          href: "/dashboard/import",
+          color: "text-emerald-600 dark:text-emerald-400",
+          bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
+          visible: hasAnyEditAccess,
+        },
+        {
+          title: "Ver Reportes",
+          description: "Análisis detallado",
+          icon: BarChart3,
+          href: "/dashboard/reports",
+          color: "text-purple-600 dark:text-purple-400",
+          bgColor: "bg-purple-50 dark:bg-purple-950/20",
+          visible: hasAnyViewAccess,
+        },
+        {
+          title: "Comparar Escenarios",
+          description: "Análisis de versiones",
+          icon: GitCompare,
+          href: "/dashboard/scenarios",
+          color: "text-orange-600 dark:text-orange-400",
+          bgColor: "bg-orange-50 dark:bg-orange-950/20",
+          visible: hasAnyViewAccess,
+        },
+        {
+          title: "Gestionar Usuarios",
+          description: "Administrar accesos",
+          icon: Users,
+          href: "/dashboard/users",
+          color: "text-pink-600 dark:text-pink-400",
+          bgColor: "bg-pink-50 dark:bg-pink-950/20",
+          visible: canManageSelectedCompanyUsers || isSuperAdmin,
+        },
+        {
+          title: "Gestionar Empresas",
+          description: "Configuración empresas",
+          icon: Building2,
+          href: "/dashboard/companies",
+          color: "text-blue-600 dark:text-blue-400",
+          bgColor: "bg-blue-50 dark:bg-blue-950/20",
+          visible: isSuperAdmin,
+        },
+      ].filter((a) => a.visible),
+    [hasAnyEditAccess, hasAnyViewAccess, canManageSelectedCompanyUsers, isSuperAdmin],
+  );
 
-  // All quick actions with permission requirements
-  const allQuickActions = [
-    {
-      title: "Gestionar Empresas",
-      description: "Ver y administrar empresas mineras",
-      icon: Building2,
-      href: "/dashboard/companies",
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-950/20",
-      visible: isSuperAdmin,
-    },
-    {
-      title: "Importar Datos",
-      description: "Cargar PBR, Dore, OPEX, CAPEX",
-      icon: Upload,
-      href: "/dashboard/import",
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
-      visible: hasAnyEditAccess,
-    },
-    {
-      title: "Ver Reportes",
-      description: "Análisis y comparaciones",
-      icon: BarChart3,
-      href: "/dashboard/reports",
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-950/20",
-      visible: hasAnyViewAccess,
-    },
-    {
-      title: "Comparar Escenarios",
-      description: "Análisis de diferentes versiones",
-      icon: GitCompare,
-      href: "/dashboard/scenarios",
-      color: "text-orange-600 dark:text-orange-400",
-      bgColor: "bg-orange-50 dark:bg-orange-950/20",
-      visible: hasAnyViewAccess,
-    },
-    {
-      title: "Gestionar Usuarios",
-      description: "Administrar usuarios del sistema",
-      icon: Users,
-      href: "/dashboard/users",
-      color: "text-pink-600 dark:text-pink-400",
-      bgColor: "bg-pink-50 dark:bg-pink-950/20",
-      visible: canManageCompanyUsers || isSuperAdmin,
-    },
-  ];
-
-  // Filter to only show permitted actions
-  const quickActions = allQuickActions.filter((action) => action.visible);
-
-  // Workflow steps filtered by permissions
-  const allWorkflowSteps = [
-    {
-      step: 1,
-      title: "Configurar Empresa",
-      description: "Crea y configura tu empresa minera con sus datos básicos",
-      icon: Building2,
-      href: "/dashboard/companies",
-      completed: totalCompanies > 0,
-      visible: isSuperAdmin,
-    },
-    {
-      step: 2,
-      title: "Importar Budget",
-      description: "Carga datos presupuestarios (PBR, Dore, OPEX, CAPEX)",
-      icon: Upload,
-      href: "/dashboard/import",
-      completed: false,
-      visible: hasAnyEditAccess,
-    },
-    {
-      step: 3,
-      title: "Importar Actual",
-      description: "Carga datos reales mensuales para comparar",
-      icon: Calendar,
-      href: "/dashboard/import",
-      completed: false,
-      visible: hasAnyEditAccess,
-    },
-    {
-      step: 4,
-      title: "Generar Reportes",
-      description: "Analiza y compara datos reales vs presupuesto",
-      icon: BarChart3,
-      href: "/dashboard/reports",
-      completed: false,
-      visible: hasAnyViewAccess,
-    },
-  ];
-
-  // Filter and re-number steps based on visibility
-  const workflowSteps = allWorkflowSteps
-    .filter((step) => step.visible)
-    .map((step, index) => ({ ...step, step: index + 1 }));
+  // Data coverage indicator (which months have actual/budget data)
+  const coverageMonths = useMemo(() => {
+    if (!report?.coverage) return null;
+    return Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      const hasActual = report.coverage?.actual_months.includes(month) ?? false;
+      const hasBudget = report.coverage?.budget_months.includes(month) ?? false;
+      return { month, hasActual, hasBudget };
+    });
+  }, [report?.coverage]);
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section - Futuristic Glass Card */}
-      <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-background to-background p-8 shadow-lg shadow-primary/5 backdrop-blur-sm transition-all hover:shadow-primary/10 hover:shadow-xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
-        <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="font-bold text-3xl tracking-tight">
-              Bienvenido,{" "}
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                {user?.first_name}
-              </span>
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              {user?.work_area || "Sistema de gestión minera"}
-              {dateStr && ` • ${dateStr}`}
-            </p>
-          </div>
-          <Badge variant="outline" className="w-fit border-primary/20 bg-primary/5 text-sm backdrop-blur-sm">
-            <Zap className="mr-1.5 h-3.5 w-3.5" />
-            Sistema Operativo
-          </Badge>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* ── Welcome Header ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="font-bold text-2xl tracking-tight">
+            Bienvenido,{" "}
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {user?.first_name}
+            </span>
+          </h1>
+          <p className="mt-1 text-muted-foreground text-sm">
+            {selectedCompany ? selectedCompany.company_name : user?.work_area || "Sistema de gestión minera"}
+            {dateStr && <span className="hidden sm:inline"> &bull; {dateStr}</span>}
+          </p>
 
-      {/* Key Metrics - Clean Futuristic Cards */}
-      <div className="grid gap-5 md:grid-cols-3">
-        {stats.map((stat) => (
-          <div
-            key={stat.title}
-            className="group relative overflow-hidden rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-            <div className="relative flex items-start justify-between">
-              <div className="flex-1 space-y-2">
-                <CardTitle className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                  {stat.title}
-                </CardTitle>
-                <div className="flex items-baseline gap-2">
-                  <div className={`font-bold text-3xl tracking-tight ${stat.color}`}>
-                    {isLoading ? <Skeleton className="h-8 w-16" /> : <span>{stat.value}</span>}
-                  </div>
-                </div>
-                <p className="font-light text-muted-foreground text-xs">{stat.description}</p>
-              </div>
-              <div className={`ml-4 rounded-xl p-3 ${stat.bgColor} transition-transform group-hover:scale-110`}>
-                <stat.icon className={`h-6 w-6 ${stat.color}`} />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Quick Actions - Futuristic Glass Cards */}
-      <div>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-xl tracking-tight">Accesos Rápidos</h2>
-            <p className="mt-1 text-muted-foreground text-sm">Navega rápidamente a las funciones principales</p>
-          </div>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => (
-            <Link key={action.href} href={action.href}>
-              <div className="group relative h-full overflow-hidden rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-primary/40 hover:shadow-primary/10 hover:shadow-xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="relative">
+          {/* Monthly data coverage dots */}
+          {coverageMonths && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-muted-foreground text-xs">Cobertura {year}:</span>
+              <div className="flex gap-0.5">
+                {coverageMonths.map((cm) => (
                   <div
-                    className={`mb-4 inline-flex rounded-xl p-3 ${action.bgColor} transition-transform group-hover:scale-110 group-hover:shadow-lg`}
-                  >
-                    <action.icon className={`h-5 w-5 ${action.color}`} />
-                  </div>
-                  <h3 className="mb-1 font-semibold text-base tracking-tight">{action.title}</h3>
-                  <p className="mb-4 font-light text-muted-foreground text-xs leading-relaxed">{action.description}</p>
-                  <div className="flex items-center gap-1 font-medium text-primary text-sm transition-all group-hover:gap-2">
-                    Acceder <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                </div>
+                    key={cm.month}
+                    className={cn(
+                      "h-2 w-3.5 rounded-sm transition-colors",
+                      cm.hasActual && cm.hasBudget
+                        ? "bg-emerald-500"
+                        : cm.hasActual
+                          ? "bg-blue-500"
+                          : cm.hasBudget
+                            ? "bg-amber-400/70"
+                            : "bg-muted",
+                    )}
+                    title={`Mes ${cm.month}: ${cm.hasActual ? "Actual" : ""}${cm.hasActual && cm.hasBudget ? " + " : ""}${cm.hasBudget ? "Budget" : ""}${!cm.hasActual && !cm.hasBudget ? "Sin datos" : ""}`}
+                  />
+                ))}
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Companies Overview - Clean Grid */}
-      {!isLoading && userCompanies.length > 0 && (
-        <div className="rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-xl tracking-tight">Mis Empresas</h2>
-              <p className="mt-1 text-muted-foreground text-sm">Empresas a las que tienes acceso</p>
-            </div>
-            <Link href="/dashboard/reports">
-              <Badge
-                variant="outline"
-                className="cursor-pointer border-primary/20 bg-primary/5 backdrop-blur-sm transition-all hover:bg-primary/10"
-              >
-                Ver reportes <ChevronRight className="ml-1 h-3 w-3" />
-              </Badge>
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {userCompanies.slice(0, 6).map((company) => (
-              <Link key={company.company_id} href="/dashboard/reports">
-                <div className="group relative overflow-hidden rounded-xl border border-border/40 bg-card/30 p-4 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-card/60 hover:shadow-lg">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                  <div className="relative flex items-center gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110">
-                      <Building2 className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-sm">{company.company_name}</p>
-                      <p className="mt-0.5 truncate text-muted-foreground text-xs capitalize">Rol: {company.role}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-          {userCompanies.length > 6 && (
-            <div className="mt-6 text-center">
-              <Link href="/dashboard/reports">
-                <Badge
-                  variant="outline"
-                  className="cursor-pointer border-primary/20 bg-primary/5 backdrop-blur-sm transition-all hover:bg-primary/10"
-                >
-                  Ver {userCompanies.length - 6} empresas más
-                </Badge>
-              </Link>
+              <div className="hidden items-center gap-3 text-muted-foreground text-xs sm:flex">
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-emerald-500" /> Ambos
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-blue-500" /> Actual
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-amber-400/70" /> Budget
+                </span>
+              </div>
             </div>
           )}
         </div>
-      )}
 
-      {/* Getting Started / Workflow - Futuristic Steps */}
-      <div className="rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm">
-        <div className="mb-6">
-          <h2 className="font-bold text-xl tracking-tight">Guía de Inicio</h2>
-          <p className="mt-1 text-muted-foreground text-sm">Sigue estos pasos para comenzar a usar el sistema</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {workflowSteps.map((step, _idx) => (
-            <Link key={step.step} href={step.href}>
-              <div
-                className={`group relative overflow-hidden rounded-xl border border-border/40 bg-card/30 p-5 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-card/60 hover:shadow-lg ${
-                  step.completed ? "border-emerald-500/30 bg-emerald-500/5" : ""
-                }`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="relative flex gap-4">
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-semibold transition-transform group-hover:scale-110 ${
-                      step.completed
-                        ? "bg-emerald-500/20 text-emerald-600 shadow-emerald-500/20 shadow-lg dark:text-emerald-400"
-                        : "bg-muted/50 text-muted-foreground"
-                    }`}
-                  >
-                    {step.completed ? (
-                      <TrendingUp className="h-6 w-6" />
-                    ) : (
-                      <span className="font-bold text-base">{step.step}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <h3 className="font-semibold text-sm">{step.title}</h3>
-                      {step.completed && (
-                        <Badge
-                          variant="outline"
-                          className="h-5 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 text-xs dark:text-emerald-400"
-                        >
-                          ✓ Completado
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="font-light text-muted-foreground text-xs leading-relaxed">{step.description}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Year selector */}
+        {selectedCompanyId && (
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Select value={year.toString()} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
-      {/* System Info - Clean Cards */}
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm">
-          <h3 className="mb-4 font-semibold text-base">Sobre el Sistema</h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between border-border/20 border-b pb-2">
-              <span className="font-light text-muted-foreground">Versión</span>
-              <span className="font-semibold">2.1.0</span>
-            </div>
-            <div className="flex items-center justify-between border-border/20 border-b pb-2">
-              <span className="font-light text-muted-foreground">Tipo de Sistema</span>
-              <span className="font-semibold">Gestión Minera</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-light text-muted-foreground">Estado</span>
-              <Badge
-                variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-              >
-                Operativo
-              </Badge>
-            </div>
+      {/* ── Main Content ── */}
+      {authLoading ? (
+        /* Auth loading skeleton */
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+            {["ag", "au", "nsr", "cashcost", "aisc", "cashflow"].map((id) => (
+              <Skeleton key={id} className="h-[120px] rounded-xl" />
+            ))}
+          </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Skeleton className="h-[340px] rounded-xl" />
+            <Skeleton className="h-[340px] rounded-xl" />
           </div>
         </div>
-
-        <div className="rounded-2xl border border-border/40 bg-card/50 p-6 shadow-sm backdrop-blur-sm">
-          <h3 className="mb-4 font-semibold text-base">Soporte</h3>
-          <p className="mb-4 font-light text-muted-foreground text-sm leading-relaxed">
-            ¿Necesitas ayuda? Consulta la documentación o contacta al equipo de soporte para asistencia.
-          </p>
-          <div className="flex gap-2">
-            <Badge
-              variant="outline"
-              className="cursor-pointer border-primary/20 bg-primary/5 backdrop-blur-sm transition-all hover:bg-primary/10"
-            >
-              <FileText className="mr-1.5 h-3 w-3" />
-              Documentación
-            </Badge>
+      ) : !selectedCompanyId ? (
+        /* No company selected */
+        <div className="space-y-6">
+          <div className="rounded-xl border border-border/40 bg-card p-12 text-center">
+            <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30" />
+            <h2 className="mt-4 font-semibold text-lg">Selecciona una empresa</h2>
+            <p className="mx-auto mt-2 max-w-md text-muted-foreground text-sm">
+              Selecciona una empresa desde el menú lateral para ver el resumen de operaciones, métricas clave y análisis
+              de desviaciones.
+            </p>
           </div>
+
+          {/* Show quick actions prominently when no company selected */}
+          {quickActions.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {quickActions.map((action) => (
+                <Link key={action.href} href={action.href}>
+                  <div className="group flex items-center gap-4 rounded-xl border border-border/40 bg-card p-5 transition-all hover:border-primary/30 hover:shadow-md">
+                    <div className={`rounded-lg p-2.5 ${action.bgColor} transition-transform group-hover:scale-105`}>
+                      <action.icon className={`h-5 w-5 ${action.color}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm">{action.title}</p>
+                      <p className="text-muted-foreground text-xs">{action.description}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Company selected – data-driven dashboard */
+        <>
+          {/* KPI Cards */}
+          <DashboardKPIs report={report} isLoading={reportLoading} />
+
+          {/* Charts (only with actual data) */}
+          {report && hasActualData && <DashboardCharts report={report} />}
+
+          {/* Bottom section: Alerts + Quick Actions */}
+          <div className="grid gap-5 lg:grid-cols-5">
+            {/* Alerts panel (wider) */}
+            <div className="lg:col-span-3">
+              {report && hasActualData ? (
+                <DashboardAlerts report={report} />
+              ) : !reportLoading ? (
+                /* Empty state – no data imported */
+                <div className="rounded-xl border border-border/40 bg-card p-8 text-center">
+                  <Upload className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                  <h3 className="mt-3 font-semibold">Sin datos importados</h3>
+                  <p className="mt-1 text-muted-foreground text-sm">
+                    Importa datos de PBR, Dore, OPEX o CAPEX para ver métricas y análisis.
+                  </p>
+                  {hasAnyEditAccess && (
+                    <Link
+                      href="/dashboard/import"
+                      className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Importar Datos
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <Skeleton className="h-[280px] rounded-xl" />
+              )}
+            </div>
+
+            {/* Quick Actions (compact sidebar) */}
+            <div className="lg:col-span-2">
+              <div className="rounded-xl border border-border/40 bg-card p-5">
+                <h3 className="mb-3 font-semibold text-sm">Acciones Rápidas</h3>
+                <div className="space-y-1.5">
+                  {quickActions.map((action) => (
+                    <Link key={action.href} href={action.href}>
+                      <div className="group flex items-center gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/50">
+                        <div className={`rounded-lg p-2 ${action.bgColor} transition-transform group-hover:scale-105`}>
+                          <action.icon className={`h-4 w-4 ${action.color}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm">{action.title}</p>
+                          <p className="text-muted-foreground text-xs">{action.description}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── System Status Bar ── */}
+      <div className="flex items-center justify-between rounded-lg border border-border/20 px-4 py-2 text-muted-foreground text-xs">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            Sistema Operativo
+          </span>
+          <span>v2.1.0</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedCompany && (
+            <Badge variant="outline" className="font-normal text-xs">
+              {selectedCompany.company_name}
+            </Badge>
+          )}
+          <Zap className="h-3 w-3" />
         </div>
       </div>
     </div>
