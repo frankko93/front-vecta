@@ -185,9 +185,17 @@ export function ImportHistory() {
                     const fin = item as FinancialData;
                     return [
                       {
-                        label: "Impuestos",
-                        value: fin.sales_taxes_royalties
-                          ? `$${Number(fin.sales_taxes_royalties).toLocaleString()}`
+                        label: "Sales Taxes",
+                        value: fin.sales_taxes ? `$${Number(fin.sales_taxes).toLocaleString()}` : null,
+                      },
+                      {
+                        label: "Royalties",
+                        value: fin.royalties ? `$${Number(fin.royalties).toLocaleString()}` : null,
+                      },
+                      {
+                        label: "Other Deductions",
+                        value: fin.other_sales_deductions
+                          ? `$${Number(fin.other_sales_deductions).toLocaleString()}`
                           : null,
                       },
                     ];

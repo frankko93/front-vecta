@@ -199,7 +199,9 @@ const PBR_CATEGORY_CONFIG: CategoryConfig[] = [
       { key: "streaming", label: "Streaming", section: "nsr", isCurrency: true },
       { key: "pbr_revenue", label: "PBR Revenue", section: "nsr", isCurrency: true, isSubtotal: true },
       { key: "shipping_selling", label: "Shipping & Selling", section: "nsr", isCurrency: true },
-      { key: "sales_taxes_royalties", label: "Sales Taxes & Royalties", section: "nsr", isCurrency: true },
+      { key: "sales_taxes", label: "Sales Taxes", section: "nsr", isCurrency: true },
+      { key: "royalties", label: "Royalties", section: "nsr", isCurrency: true },
+      { key: "other_sales_deductions", label: "Other Sales Deductions", section: "nsr", isCurrency: true },
       { key: "smelting_refining_charges", label: "Smelting & Refining Charges", section: "nsr", isCurrency: true },
       { key: "net_smelter_return", label: "Net Smelter Return", section: "nsr", isCurrency: true, isSubtotal: true },
     ],
@@ -247,7 +249,25 @@ const PBR_CATEGORY_CONFIG: CategoryConfig[] = [
     key: "cost_per_oz",
     title: "Cost per Ounce Paid",
     metrics: [
+      {
+        key: "production_based_costs",
+        label: "Production based Costs",
+        section: "costs",
+        isCurrency: true,
+      },
+      { key: "shipping_selling", label: "Shipping & Selling", section: "nsr", isCurrency: true },
+      { key: "smelting_refining_charges", label: "Smelting & Refining Charges", section: "nsr", isCurrency: true },
+      { key: "sales_taxes", label: "Sales Taxes", section: "nsr", isCurrency: true },
+      { key: "royalties", label: "Royalties", section: "nsr", isCurrency: true },
+      { key: "other_sales_deductions", label: "Other Sales Deductions", section: "nsr", isCurrency: true },
       { key: "gold_credit", label: "Gold Credit", section: "nsr", isCurrency: true },
+      {
+        key: "cash_cost_silver_total",
+        label: "Cash Costs - Silver ($)",
+        section: "cash_cost",
+        isCurrency: true,
+        isSubtotal: true,
+      },
       {
         key: "cash_cost_per_oz_silver",
         label: "Cash Cost per Payable Ounce - Silver",
@@ -260,11 +280,19 @@ const PBR_CATEGORY_CONFIG: CategoryConfig[] = [
     key: "aisc",
     title: "All In Sustaining Cost (AISC)",
     metrics: [
+      { key: "sustaining_capital_per_oz", label: "Sustaining Capital per oz", section: "cash_cost", isCurrency: true },
       {
         key: "accretion_of_mine_closure_liability",
         label: "Accretion of Mine Closure Liability",
         section: "capex",
         isCurrency: true,
+      },
+      {
+        key: "aisc_silver_total",
+        label: "AISC - Silver ($)",
+        section: "cash_cost",
+        isCurrency: true,
+        isSubtotal: true,
       },
       {
         key: "aisc_per_oz_silver",
@@ -298,6 +326,7 @@ const AVERAGE_METRICS = [
   "margin_per_tonne",
   "cash_cost_per_oz_silver",
   "aisc_per_oz_silver",
+  "sustaining_capital_per_oz",
 ];
 
 export function DetailedPBRView({ report, summaryReport }: DetailedPBRViewProps) {

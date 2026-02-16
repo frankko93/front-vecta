@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import Link from "next/link";
 
 import {
@@ -23,6 +25,19 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function DashboardPage() {
   const { user, userCompanies, isLoading, isSuperAdmin, canManageCompanyUsers } = useAuth();
+
+  // Avoid hydration mismatch: render date only on client
+  const [dateStr, setDateStr] = useState("");
+  useEffect(() => {
+    setDateStr(
+      new Date().toLocaleDateString("es", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    );
+  }, []);
 
   // User only sees their assigned companies
   const totalCompanies = userCompanies.length;
@@ -171,13 +186,8 @@ export default function DashboardPage() {
               </span>
             </h1>
             <p className="mt-2 text-muted-foreground">
-              {user?.work_area || "Sistema de gestión minera"} •{" "}
-              {new Date().toLocaleDateString("es", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {user?.work_area || "Sistema de gestión minera"}
+              {dateStr && ` • ${dateStr}`}
             </p>
           </div>
           <Badge variant="outline" className="w-fit border-primary/20 bg-primary/5 text-sm backdrop-blur-sm">

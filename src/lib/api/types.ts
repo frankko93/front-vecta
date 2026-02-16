@@ -221,7 +221,10 @@ export interface CAPEXData extends BaseDataRow {
 // Financial Data
 export interface FinancialData extends BaseDataRow {
   shipping_selling: number;
-  sales_taxes_royalties: number;
+  sales_taxes: number;
+  royalties: number;
+  other_sales_deductions: number;
+  sales_taxes_royalties?: number; // Backward compat: calculated as sales_taxes + royalties
   other_adjustments: number;
   currency: string;
 }
@@ -302,13 +305,18 @@ export interface NSRMetrics {
   streaming: number; // Streaming agreement value (generally negative)
   pbr_revenue: number; // Calculated: nsr_dore + streaming
   shipping_selling: number;
-  sales_taxes_royalties: number;
+  sales_taxes: number; // Split from sales_taxes_royalties
+  royalties: number; // Split from sales_taxes_royalties
+  sales_taxes_royalties: number; // Backward compat: calculated as sales_taxes + royalties
+  other_sales_deductions: number; // Other deductions from NSR
   smelting_refining_charges: number; // Smelting & refining charges
   net_smelter_return: number;
   gold_credit: number; // Gold credit as by-product (negative)
   nsr_per_tonne: number;
   total_cost_per_tonne: number;
   margin_per_tonne: number;
+  silver_price_per_oz: number; // Metal spot price for silver
+  gold_price_per_oz: number; // Metal spot price for gold
   has_data: boolean;
 }
 
@@ -327,6 +335,9 @@ export interface CashCostMetrics {
   cash_cost_per_oz_silver: number;
   aisc_per_oz_silver: number;
   gold_credit: number;
+  cash_cost_silver_total: number; // Total cash cost in $ (not per oz)
+  aisc_silver_total: number; // Total AISC in $ (not per oz)
+  sustaining_capital_per_oz: number; // Sustaining capital per payable oz
   has_data: boolean;
 }
 
@@ -671,7 +682,10 @@ export interface CAPEXReport {
 // Financial Detailed Report
 export interface FinancialActual {
   shipping_selling: number;
-  sales_taxes_royalties: number;
+  sales_taxes: number;
+  royalties: number;
+  other_sales_deductions: number;
+  sales_taxes_royalties?: number; // Backward compat: calculated as sales_taxes + royalties
   other_adjustments: number;
   currency: string;
   has_data: boolean;
@@ -683,7 +697,10 @@ export interface FinancialMonthlyData {
   budget: FinancialActual;
   variance: {
     shipping_selling: VarianceMetric;
-    sales_taxes_royalties: VarianceMetric;
+    sales_taxes: VarianceMetric;
+    royalties: VarianceMetric;
+    other_sales_deductions: VarianceMetric;
+    sales_taxes_royalties?: VarianceMetric; // Backward compat
     other_adjustments: VarianceMetric;
   };
 }

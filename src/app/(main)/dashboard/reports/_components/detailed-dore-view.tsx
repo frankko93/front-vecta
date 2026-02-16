@@ -151,6 +151,14 @@ const DORE_CATEGORY_CONFIG: CategoryConfig[] = [
     ],
   },
   {
+    key: "metal_prices",
+    title: "Metal Prices",
+    metrics: [
+      { key: "silver_price_per_oz", label: "Silver Price ($/oz)", section: "nsr", isCurrency: true },
+      { key: "gold_price_per_oz", label: "Gold Price ($/oz)", section: "nsr", isCurrency: true },
+    ],
+  },
+  {
     key: "gross_revenue",
     title: "Gross Metal Revenue",
     metrics: [
@@ -200,6 +208,8 @@ const AVERAGE_METRICS = [
   "pbr_price_gold",
   "realized_price_silver",
   "realized_price_gold",
+  "silver_price_per_oz",
+  "gold_price_per_oz",
 ];
 
 export function DetailedDoreView({ report, summaryReport }: DetailedDoreViewProps) {
