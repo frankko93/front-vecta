@@ -24,31 +24,32 @@ interface AuthProviderProps {
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const _router = useRouter();
-  const [store] = useState<StoreApi<AuthStoreState>>(() => {
-    // Initialize with stored values
-    const storedUser = authStorage.getUser();
-    const storedToken = getAuthToken();
-    const storedCompanyId = authStorage.getSelectedCompanyId();
-
-    return createAuthStore({
-      token: storedToken,
-      user: storedUser,
-      selectedCompanyId: storedCompanyId,
-      isAuthenticated: !!storedToken && !!storedUser,
-    });
-  });
+  // Initialize store with safe defaults (SSR-compatible: no localStorage access)
+  const [store] = useState<StoreApi<AuthStoreState>>(() => createAuthStore());
 
   // Track if initial auth check has been done
   const initialCheckDone = useRef(false);
 
-  // Check authentication on mount
+  // Hydrate from localStorage + validate token on mount (client only)
   useEffect(() => {
     if (initialCheckDone.current) return;
     initialCheckDone.current = true;
 
     const checkAuth = async () => {
-      const token = getAuthToken();
-      if (!token) {
+      // Hydrate from localStorage first
+      const storedToken = getAuthToken();
+      const storedUser = authStorage.getUser();
+      const storedCompanyId = authStorage.getSelectedCompanyId();
+
+      // If we have stored auth data, set it immediately for fast UI
+      if (storedToken && storedUser) {
+        store.getState().setAuth(storedToken, storedUser);
+        if (storedCompanyId) {
+          store.getState().setSelectedCompanyId(storedCompanyId);
+        }
+      }
+
+      if (!storedToken) {
         store.getState().setLoading(false);
         return;
       }
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const userData = await authService.getCurrentUser();
 
         // Update store with fresh user data
-        store.getState().setAuth(token, userData);
+        store.getState().setAuth(storedToken, userData);
 
         // Persist user data
         authStorage.setUser(userData);

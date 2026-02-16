@@ -271,12 +271,30 @@ const COMPARISON_CATEGORIES: CategoryConfig[] = [
         aggregate: "sum",
       },
       {
-        key: "sales_taxes_royalties",
-        label: "Sales Taxes & Royalties",
+        key: "sales_taxes",
+        label: "Sales Taxes",
         format: fmtCurrency,
         lowerIsBetter: true,
         section: "nsr",
-        field: "sales_taxes_royalties",
+        field: "sales_taxes",
+        aggregate: "sum",
+      },
+      {
+        key: "royalties",
+        label: "Royalties",
+        format: fmtCurrency,
+        lowerIsBetter: true,
+        section: "nsr",
+        field: "royalties",
+        aggregate: "sum",
+      },
+      {
+        key: "other_sales_deductions",
+        label: "Other Sales Deductions",
+        format: fmtCurrency,
+        lowerIsBetter: true,
+        section: "nsr",
+        field: "other_sales_deductions",
         aggregate: "sum",
       },
       {
@@ -441,7 +459,7 @@ const COMPARISON_CATEGORIES: CategoryConfig[] = [
   },
   {
     key: "unit_costs",
-    title: "Unit Costs (per oz)",
+    title: "Unit Costs & Cash Cost",
     metrics: [
       {
         key: "gold_credit_cashcost",
@@ -452,6 +470,15 @@ const COMPARISON_CATEGORIES: CategoryConfig[] = [
         aggregate: "sum",
       },
       {
+        key: "cash_cost_silver_total",
+        label: "Cash Costs - Silver ($)",
+        format: fmtCurrency,
+        lowerIsBetter: true,
+        section: "cash_cost",
+        field: "cash_cost_silver_total",
+        aggregate: "sum",
+      },
+      {
         key: "cash_cost_per_oz_silver",
         label: "Cash Cost per oz Silver",
         format: fmtCurrency,
@@ -459,6 +486,24 @@ const COMPARISON_CATEGORIES: CategoryConfig[] = [
         section: "cash_cost",
         field: "cash_cost_per_oz_silver",
         aggregate: "avg",
+      },
+      {
+        key: "sustaining_capital_per_oz",
+        label: "Sustaining Capital per oz",
+        format: fmtCurrency,
+        lowerIsBetter: true,
+        section: "cash_cost",
+        field: "sustaining_capital_per_oz",
+        aggregate: "avg",
+      },
+      {
+        key: "aisc_silver_total",
+        label: "AISC - Silver ($)",
+        format: fmtCurrency,
+        lowerIsBetter: true,
+        section: "cash_cost",
+        field: "aisc_silver_total",
+        aggregate: "sum",
       },
       {
         key: "aisc_per_oz_silver",

@@ -789,7 +789,9 @@ function _DetailedTables({ months }: { months: MonthlyReport[] }) {
       rows: [
         { label: "NSR Doré", k: "nsr_dore", curr: true },
         { label: "Shipping", k: "shipping_selling", curr: true },
-        { label: "Impuestos", k: "sales_taxes_royalties", curr: true },
+        { label: "Sales Taxes", k: "sales_taxes", curr: true },
+        { label: "Royalties", k: "royalties", curr: true },
+        { label: "Other Deductions", k: "other_sales_deductions", curr: true },
         { label: "NSR Total", k: "net_smelter_return", curr: true, bold: true },
         { label: "NSR/Ton", k: "nsr_per_tonne", curr: true },
         { label: "Costo/Ton", k: "total_cost_per_tonne", curr: true },
@@ -813,7 +815,10 @@ function _DetailedTables({ months }: { months: MonthlyReport[] }) {
       key: "cash_cost",
       rows: [
         { label: "Crédito Oro", k: "gold_credit", curr: true },
+        { label: "Cash Cost Total ($)", k: "cash_cost_silver_total", curr: true },
         { label: "Cash Cost/oz", k: "cash_cost_per_oz_silver", curr: true },
+        { label: "Sustaining Capital/oz", k: "sustaining_capital_per_oz", curr: true },
+        { label: "AISC Total ($)", k: "aisc_silver_total", curr: true },
         { label: "AISC/oz", k: "aisc_per_oz_silver", curr: true, bold: true },
       ],
     },
@@ -1108,6 +1113,14 @@ const CATEGORY_CONFIG: CategoryConfig[] = [
     ],
   },
   {
+    key: "metal_prices",
+    title: "Metal Prices",
+    metrics: [
+      { key: "silver_price_per_oz", label: "Silver Price ($/oz)", section: "nsr", isCurrency: true },
+      { key: "gold_price_per_oz", label: "Gold Price ($/oz)", section: "nsr", isCurrency: true },
+    ],
+  },
+  {
     key: "pbr_margin",
     title: "Production Basis Margin Reporting",
     metrics: [
@@ -1115,7 +1128,9 @@ const CATEGORY_CONFIG: CategoryConfig[] = [
       { key: "streaming", label: "Streaming", section: "nsr", isCurrency: true },
       { key: "pbr_revenue", label: "PBR Revenue", section: "nsr", isCurrency: true, isSubtotal: true },
       { key: "shipping_selling", label: "Shipping & Selling", section: "nsr", isCurrency: true },
-      { key: "sales_taxes_royalties", label: "Sales Taxes & Royalties", section: "nsr", isCurrency: true },
+      { key: "sales_taxes", label: "Sales Taxes", section: "nsr", isCurrency: true },
+      { key: "royalties", label: "Royalties", section: "nsr", isCurrency: true },
+      { key: "other_sales_deductions", label: "Other Sales Deductions", section: "nsr", isCurrency: true },
       { key: "smelting_refining_charges", label: "Smelting & Refining Charges", section: "nsr", isCurrency: true },
       { key: "net_smelter_return", label: "Net Smelter Return", section: "nsr", isCurrency: true, isSubtotal: true },
     ],
@@ -1158,7 +1173,22 @@ const CATEGORY_CONFIG: CategoryConfig[] = [
     title: "PBR Based Cash Cost & AISC",
     metrics: [
       { key: "gold_credit", label: "Gold Credit", section: "nsr", isCurrency: true },
+      {
+        key: "cash_cost_silver_total",
+        label: "Cash Costs - Silver ($)",
+        section: "cash_cost",
+        isCurrency: true,
+        isSubtotal: true,
+      },
       { key: "cash_cost_per_oz_silver", label: "Cash Cost per oz Silver", section: "cash_cost", isCurrency: true },
+      { key: "sustaining_capital_per_oz", label: "Sustaining Capital per oz", section: "cash_cost", isCurrency: true },
+      {
+        key: "aisc_silver_total",
+        label: "AISC - Silver ($)",
+        section: "cash_cost",
+        isCurrency: true,
+        isSubtotal: true,
+      },
       {
         key: "aisc_per_oz_silver",
         label: "AISC per oz Silver",
@@ -1238,8 +1268,63 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
     [],
   );
 
-  // Helper function to calculate average for rate/percentage metrics (stable ref for useMemo deps)
-  const avgMetricAcrossMonths = useCallback(
+  // Weighted average mapping: metric -> { weightSection, weightKey }
+  // Metrics weighted by total_tonnes_processed (grades, recovery rates, per-tonne values)
+  // Metrics weighted by payable_silver_oz (per-oz cost metrics)
+  const WEIGHTED_AVG_CONFIG: Record<string, { weightSection: string; weightKey: string }> = useMemo(
+    () => ({
+      feed_grade_silver_gpt: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      feed_grade_gold_gpt: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      recovery_rate_silver_pct: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      recovery_rate_gold_pct: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      nsr_per_tonne: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      total_cost_per_tonne: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      margin_per_tonne: { weightSection: "processing", weightKey: "total_tonnes_processed" },
+      cash_cost_per_oz_silver: { weightSection: "production", weightKey: "payable_silver_oz" },
+      aisc_per_oz_silver: { weightSection: "production", weightKey: "payable_silver_oz" },
+      sustaining_capital_per_oz: { weightSection: "production", weightKey: "payable_silver_oz" },
+    }),
+    [],
+  );
+
+  // Helper function to calculate weighted average for rate/percentage metrics
+  const weightedAvgMetricAcrossMonths = useCallback(
+    (
+      monthsList: MonthlyReport[],
+      section: string,
+      metricKey: string,
+      dataType: "actual" | "budget",
+      weightSection: string,
+      weightKey: string,
+    ): number | null => {
+      let weightedSum = 0;
+      let totalWeight = 0;
+
+      for (const month of monthsList) {
+        const data = month[dataType]?.[section as keyof typeof month.actual] as unknown as Record<string, number>;
+        const weightData = month[dataType]?.[weightSection as keyof typeof month.actual] as unknown as Record<
+          string,
+          number
+        >;
+        if (
+          data?.has_data &&
+          typeof data[metricKey] === "number" &&
+          weightData?.has_data &&
+          typeof weightData[weightKey] === "number" &&
+          weightData[weightKey] > 0
+        ) {
+          weightedSum += data[metricKey] * weightData[weightKey];
+          totalWeight += weightData[weightKey];
+        }
+      }
+
+      return totalWeight > 0 ? weightedSum / totalWeight : null;
+    },
+    [],
+  );
+
+  // Helper function to calculate simple average (for metrics without weight, e.g. prices)
+  const simpleAvgMetricAcrossMonths = useCallback(
     (monthsList: MonthlyReport[], section: string, metricKey: string, dataType: "actual" | "budget"): number | null => {
       let sum = 0;
       let count = 0;
@@ -1268,6 +1353,9 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
     "margin_per_tonne",
     "cash_cost_per_oz_silver",
     "aisc_per_oz_silver",
+    "sustaining_capital_per_oz",
+    "silver_price_per_oz",
+    "gold_price_per_oz",
   ];
 
   // Build table rows from the data
@@ -1308,12 +1396,37 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
         let budgetYTD: number | null = null;
 
         if (isAllPeriod) {
-          // Accumulated mode: sum or average across all months with actual data
+          // Accumulated mode: sum, weighted average, or simple average across all months
           const isAvgMetric = AVERAGE_METRICS.includes(metric.key);
-          const aggregator = isAvgMetric ? avgMetricAcrossMonths : sumMetricAcrossMonths;
+          const weightConfig = WEIGHTED_AVG_CONFIG[metric.key];
 
-          actualValue = aggregator(targetMonths, metric.section, metric.key, "actual");
-          budgetValue = aggregator(targetMonths, metric.section, metric.key, "budget");
+          if (isAvgMetric && weightConfig) {
+            // Use weighted average for grades, rates, per-unit metrics
+            actualValue = weightedAvgMetricAcrossMonths(
+              targetMonths,
+              metric.section,
+              metric.key,
+              "actual",
+              weightConfig.weightSection,
+              weightConfig.weightKey,
+            );
+            budgetValue = weightedAvgMetricAcrossMonths(
+              targetMonths,
+              metric.section,
+              metric.key,
+              "budget",
+              weightConfig.weightSection,
+              weightConfig.weightKey,
+            );
+          } else if (isAvgMetric) {
+            // Simple average for metrics without weight (e.g. metal prices)
+            actualValue = simpleAvgMetricAcrossMonths(targetMonths, metric.section, metric.key, "actual");
+            budgetValue = simpleAvgMetricAcrossMonths(targetMonths, metric.section, metric.key, "budget");
+          } else {
+            // Sum for volume/dollar metrics
+            actualValue = sumMetricAcrossMonths(targetMonths, metric.section, metric.key, "actual");
+            budgetValue = sumMetricAcrossMonths(targetMonths, metric.section, metric.key, "budget");
+          }
 
           // For "all" mode, we don't show separate YTD (the main columns ARE the YTD)
         } else {
@@ -1372,7 +1485,16 @@ function SummaryTableView({ months, companyConfig }: { months: MonthlyReport[]; 
     }
 
     return rows;
-  }, [selectedPeriod, monthsWithActual, months, companyConfig, avgMetricAcrossMonths, sumMetricAcrossMonths]);
+  }, [
+    selectedPeriod,
+    monthsWithActual,
+    months,
+    companyConfig,
+    weightedAvgMetricAcrossMonths,
+    simpleAvgMetricAcrossMonths,
+    sumMetricAcrossMonths,
+    WEIGHTED_AVG_CONFIG,
+  ]);
 
   // Helper to check if a number matches the search term (stable ref for useMemo deps)
   const numberMatchesSearch = useCallback((value: number | null, term: string, isCurrency: boolean): boolean => {
